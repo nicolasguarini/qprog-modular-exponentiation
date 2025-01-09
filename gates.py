@@ -10,19 +10,19 @@ circuit = QuantumCircuit(N_QUBITS, 1)
 
 
 # AND
-def and_gate(circuit):
-    circuit.ccx(0, 1, 2)
+def and_gate(circuit, a, b, output):
+    circuit.ccx(a, b, output)
 
 # OR
-def or_gate(circuit):
-    circuit.cx(0, 2)
-    circuit.cx(1, 2)
-    circuit.ccx(0, 1, 2)
+def or_gate(circuit, a, b, output):
+    circuit.cx(a, output)
+    circuit.cx(b, output)
+    circuit.ccx(a, b, output)
 
 # XOR
-def xor_gate(circuit):
-    circuit.cx(0, 2)
-    circuit.cx(1, 2)
+def xor_gate(circuit, a, b, output):
+    circuit.cx(a, output)
+    circuit.cx(b, output)
 
 # SET BITS
 circuit.x(0)
@@ -30,7 +30,7 @@ circuit.x(1)
 circuit.barrier()
 
 # MEASURE
-xor_gate(circuit)
+xor_gate(circuit, 0, 1, 2)
 circuit.measure([2], [0])
 
 
