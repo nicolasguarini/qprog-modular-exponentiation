@@ -3,24 +3,25 @@ from qiskit_aer import AerSimulator
 
 backend = AerSimulator()
 
-# AND
 def and_gate(circuit, a, b, output):
     circuit.ccx(a, b, output)
 
-# OR
+
 def or_gate(circuit, a, b, output):
     circuit.cx(a, output)
     circuit.cx(b, output)
     circuit.ccx(a, b, output)
 
-# XOR
+
 def xor_gate(circuit, a, b, output):
     circuit.cx(a, output)
     circuit.cx(b, output)
 
+
 def reset_bits(bits):
     for i in bits:
         circuit.reset(i)
+
 
 def set_bits(circuit, A, X):
     """
@@ -33,7 +34,7 @@ def set_bits(circuit, A, X):
     for i in range(len(X)):
         if X[i] == '1':
             circuit.x(A[i])
-    circuit.barrier()
+
 
 def copy(circuit, A, B):
     """
@@ -49,11 +50,14 @@ def copy(circuit, A, B):
         circuit.cx(A[i], B[i])
     circuit.barrier()
 
+
 def full_adder(circuit, a, b, r, c_in, c_out, AUX):
     """
     Function full_adder(circuit,a,b,r,c_in,c_out,AUX) implements a full adder (Figure
     3). The registers a and b store the bits to be added, c_in stores the carry-in bit, c_out
     stores the carry-out bit, r stores the result of the sum, and AUX is the auxiliary register.
+
+    Needs len(AUX)=3.
     """
     reset_bits(bits=AUX)
     
@@ -65,19 +69,52 @@ def full_adder(circuit, a, b, r, c_in, c_out, AUX):
 
     or_gate(circuit=circuit, a=AUX[1], b=AUX[2], output=c_out)
 
+    reset_bits(bits=AUX)
 
 
-N_QUBITS = 10
+def add(circuit, A, B, R, AUX):
+    """
+    Function add(circuit,A,B,R,AUX) implements a circuit that adds number(A) to number(B)
+    and stores the result at register R. Assume that len(A)=len(B)=len(R). Such a circuit is
+    obtained by creating a cascade of full-adder circuits, as specified in Figure 5. The carry bits
+    are part of the auxiliary register AUX. Note that the carry-in bit of the first adder (from right
+    to left) is set to 0.
+
+    Needs 3 * len(A) + 5 total qubits
+    Needs len(AUX)=5
+    """
+    l = len(A)
+
+    A = "".join(reversed(A))
+    B = "".join(reversed(B))
+
+    set_bits(circuit=circuit, A=range(0, l), X=A)
+    set_bits(circuit=circuit, A=range(l, 2*l), X=B)
+
+    reset_bits(AUX)
+
+    for i in range(l):
+        if i%2 == 0:
+            full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[0], c_out=AUX[1], AUX=AUX[2:])
+        else:
+            full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[1], c_out=AUX[0], AUX=AUX[2:])
+
+    reset_bits(AUX)
+   
+    
+## CREATE CIRCUIT
+N_QUBITS = 11
 circuit = QuantumCircuit(N_QUBITS, 2)
 
-set_bits(circuit=circuit, A=[0, 1], X="00")
-full_adder(circuit, a=0, b=1, c_in=2, c_out=3, r=4, AUX=[5, 6, 7])
+# set_bits(circuit=circuit, A=[0, 1], X="00")
+# full_adder(circuit, a=0, b=1, c_in=2, c_out=3, r=4, AUX=[5, 6, 7])
+add(circuit=circuit, A="11", B="11", R=[9,10], AUX=[4, 5, 6, 7, 8]) # Needs (3 * len(A)) + 5 qubits
 
-
-
-circuit.measure([4, 3], [0,1])
+## MEASURE AND PRINT CIRCUIT
+circuit.measure([9,10], [0,1])
 print(circuit)
 
+## COMPILE AND RUN
 transpiled_circuit = transpile(circuit, backend)
 n_shots = 1024
 job_sim = backend.run(transpiled_circuit, shots = n_shots)
