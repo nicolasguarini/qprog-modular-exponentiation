@@ -100,15 +100,48 @@ def add(circuit, A, B, R, AUX):
             full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[1], c_out=AUX[0], AUX=AUX[2:])
 
     reset_bits(AUX)
-   
-    
+
+
+def subtract(circuit, A, B, R, AUX):
+    """
+    Function subtract(circuit,A,B,R,AUX) implements a circuit that subtracts Number(B)
+    from Number(A) and stores the result in register R. Assume that len(A) = len(B) = len(R).
+    Such a circuit can be obtained by negating each bit stored in B, and by applying the adder
+    circuit with the first carry-in bit set to 1 instead of 0 (Figure 9).
+
+    Needs (3 * len(A)) + 5 total qubits
+    Needs len(AUX)=5
+    """
+
+    l = len(A)
+
+    A = "".join(reversed(A))
+    B = "".join(reversed(B))
+    B = "".join('1' if bit == '0' else '0' for bit in B) # Negate all bits of B
+
+    set_bits(circuit=circuit, A=range(0, l), X=A)
+    set_bits(circuit=circuit, A=range(l, 2*l), X=B)
+
+    reset_bits(AUX)
+    circuit.x(AUX[0]) # Set c_in = 1
+
+    for i in range(l):
+        if i%2 == 0:
+            full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[0], c_out=AUX[1], AUX=AUX[2:])
+        else:
+            full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[1], c_out=AUX[0], AUX=AUX[2:])
+
+    reset_bits(AUX)
+
+
 ## CREATE CIRCUIT
 N_QUBITS = 11
 circuit = QuantumCircuit(N_QUBITS, 2)
 
 # set_bits(circuit=circuit, A=[0, 1], X="00")
 # full_adder(circuit, a=0, b=1, c_in=2, c_out=3, r=4, AUX=[5, 6, 7])
-add(circuit=circuit, A="11", B="11", R=[9,10], AUX=[4, 5, 6, 7, 8]) # Needs (3 * len(A)) + 5 qubits
+# add(circuit=circuit, A="11", B="11", R=[9,10], AUX=[4, 5, 6, 7, 8]) # Needs (3 * len(A)) + 5 qubits
+subtract(circuit=circuit, A="11", B="11", R=[9,10], AUX=[4, 5, 6, 7, 8]) # Needs (3 * len(A)) + 5 qubits
 
 ## MEASURE AND PRINT CIRCUIT
 circuit.measure([9,10], [0,1])
