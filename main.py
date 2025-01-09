@@ -16,10 +16,25 @@ def set_bits(circuit, A, X):
             circuit.x(A[i])
     circuit.barrier()
 
+def copy(circuit, A, B):
+    """
+    Function copy(circuit,A,B) copies the binary string bin(A) to register B. Assume that
+    len(A)=len(B) and that before the application of the function, B is initialized to |0⟩. Hint:
+    use CNOT gates.
+
+    The function is correct because A and B are quantum registers, not binary strings. 
+    copy(circuit, A, B) uses CNOT gates to transfer the quantum state of each qubit in A to the corresponding qubit in B, 
+    preserving superpositions and entanglement. If A were a binary string, CNOT would not be applicable.
+    """
+    for i in range(len(A)):
+        circuit.cx(A[i], B[i])
+    circuit.barrier()
+
 N_QUBITS = 10
 circuit = QuantumCircuit(N_QUBITS, 2)
 
 set_bits(circuit=circuit, A=[0, 1], X="11")
+copy(circuit=circuit, A=[0, 1], B=[2, 3])
 
 
 
