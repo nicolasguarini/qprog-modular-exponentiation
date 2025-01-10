@@ -127,10 +127,10 @@ def subtract(circuit, A, B, R, AUX):
     reset_bits(AUX)
 
 ## CREATE CIRCUIT
-A = "000"
-B = "000"
+A = "011"
+B = "001"
 
-n_qubits = 4 * len(A) + 3
+n_qubits = 4 * len(A) + 2
 circuit = QuantumCircuit(n_qubits, 3)
 
 set_bits(circuit=circuit, A=range(0, len(A)), X="".join(reversed(A)))
@@ -141,12 +141,12 @@ A_register = range(0, len(A))
 B_register = range(len(A), 2 * len(A))
 
 # add(circuit=circuit, A=A_register, B=B_register, R=[n_qubits-2, n_qubits-1], AUX=range(2*len(A), n_qubits-2)) # equivalent to (with len(A)=2): add(circuit=circuit, A=[0,1], B=[2,3], R=[9,10], AUX=[4, 5, 6, 7, 8])
-#add(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[12,13,14], AUX=[6,7,8,9,10])
-subtract(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[12,13,14], AUX=[6,7,8,9,10])
+#add(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
+subtract(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
 
 
 ## MEASURE AND PRINT CIRCUIT
-circuit.measure([12,13,14], [0, 1, 2])
+circuit.measure([11,12,13], [0, 1, 2])
 print(circuit)
 
 ## COMPILE AND RUN
