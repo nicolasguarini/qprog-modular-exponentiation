@@ -85,12 +85,6 @@ def add(circuit, A, B, R, AUX):
     """
     l = len(A)
 
-    A = "".join(reversed(A))
-    B = "".join(reversed(B))
-
-    set_bits(circuit=circuit, A=range(0, l), X=A)
-    set_bits(circuit=circuit, A=range(l, 2*l), X=B)
-
     reset_bits(AUX)
 
     for i in range(l):
@@ -115,12 +109,8 @@ def subtract(circuit, A, B, R, AUX):
 
     l = len(A)
 
-    A = "".join(reversed(A))
-    B = "".join(reversed(B))
-    B = "".join('1' if bit == '0' else '0' for bit in B) # Negate all bits of B
-
-    set_bits(circuit=circuit, A=range(0, l), X=A)
-    set_bits(circuit=circuit, A=range(l, 2*l), X=B)
+    for i in range(len(B)): # negate all bits of B
+        circuit.x(B[i])
 
     reset_bits(AUX)
     circuit.x(AUX[0]) # Set c_in = 1
@@ -131,20 +121,32 @@ def subtract(circuit, A, B, R, AUX):
         else:
             full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[1], c_out=AUX[0], AUX=AUX[2:])
 
+    for i in range(len(B)): # bring back the bits of B
+        circuit.x(B[i])
+
     reset_bits(AUX)
 
-
 ## CREATE CIRCUIT
-N_QUBITS = 11
-circuit = QuantumCircuit(N_QUBITS, 2)
+A = "000"
+B = "000"
 
-# set_bits(circuit=circuit, A=[0, 1], X="00")
-# full_adder(circuit, a=0, b=1, c_in=2, c_out=3, r=4, AUX=[5, 6, 7])
-# add(circuit=circuit, A="11", B="11", R=[9,10], AUX=[4, 5, 6, 7, 8]) # Needs (3 * len(A)) + 5 qubits
-subtract(circuit=circuit, A="11", B="11", R=[9,10], AUX=[4, 5, 6, 7, 8]) # Needs (3 * len(A)) + 5 qubits
+n_qubits = 4 * len(A) + 3
+circuit = QuantumCircuit(n_qubits, 3)
+
+set_bits(circuit=circuit, A=range(0, len(A)), X="".join(reversed(A)))
+set_bits(circuit=circuit, A=range(len(B), 2 * len(B)), X="".join(reversed(B)))
+circuit.barrier()
+
+A_register = range(0, len(A))
+B_register = range(len(A), 2 * len(A))
+
+# add(circuit=circuit, A=A_register, B=B_register, R=[n_qubits-2, n_qubits-1], AUX=range(2*len(A), n_qubits-2)) # equivalent to (with len(A)=2): add(circuit=circuit, A=[0,1], B=[2,3], R=[9,10], AUX=[4, 5, 6, 7, 8])
+#add(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[12,13,14], AUX=[6,7,8,9,10])
+subtract(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[12,13,14], AUX=[6,7,8,9,10])
+
 
 ## MEASURE AND PRINT CIRCUIT
-circuit.measure([9,10], [0,1])
+circuit.measure([12,13,14], [0, 1, 2])
 print(circuit)
 
 ## COMPILE AND RUN
