@@ -130,35 +130,54 @@ def subtract(circuit, A, B, R, AUX):
     for i in range(len(B)): # bring back the bits of B
         circuit.x(B[i])
 
+
+def greater_than(circuit, A, B, r, AUX):
+    # IDEA:
+    # 1) compute B-A
+    # 2) if the carry out of the subtraction is 0, then A>B
+    #   -> the negation of the carry out is A > B
+    #
+    #! -> the subtraction function should NOT reset AUX after the computation
+
+    reset_bits(AUX)
+    result_register = AUX[:len(A)]
+    aux_subtract=AUX[len(A):]
+
+    subtract(circuit=circuit, A=B, B=A, R=result_register, AUX=aux_subtract)
+
+    copy(circuit, [aux_subtract[len(A)%2]], [r])
+    circuit.x(r)
+
     reset_bits(AUX)
 
 ## CREATE CIRCUIT
-A = "0100"
-B = "0110"
+A = "1110"
+B = "1001"
 
-n_qubits = 3 * len(A) + 5
+n_qubits = 3 * len(A) + 5 + 1 # 3*len(A) for storing A,B and the result; 5 as AUX for subtract/add; 1 for the result of greater_than
 circuit = QuantumCircuit(n_qubits, len(A))
-
-set_bits(circuit=circuit, A=range(0, len(A)), X="".join(reversed(A)))
-set_bits(circuit=circuit, A=range(len(B), 2 * len(B)), X="".join(reversed(B)))
-circuit.barrier()
 
 A_register = range(0, len(A))
 B_register = range(len(A), 2 * len(A))
 
-# add(circuit=circuit, A=A_register, B=B_register, R=[n_qubits-2, n_qubits-1], AUX=range(2*len(A), n_qubits-2)) # equivalent to (with len(A)=2): add(circuit=circuit, A=[0,1], B=[2,3], R=[9,10], AUX=[4, 5, 6, 7, 8])
+set_bits(circuit=circuit, A=A_register, X="".join(reversed(A)))
+set_bits(circuit=circuit, A=B_register, X="".join(reversed(B)))
+circuit.barrier()
+
+
 #add(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
 #subtract(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
 #add(circuit=circuit, A=[0,1,2,3], B=[4,5,6,7], R=[13,14,15,16], AUX=[8,9,10,11,12])
-subtract(circuit=circuit, A=[0,1,2,3], B=[4,5,6,7], R=[13,14,15,16], AUX=[8,9,10,11,12])
+#subtract(circuit=circuit, A=[0,1,2,3], B=[4,5,6,7], R=[13,14,15,16], AUX=[8,9,10,11,12])
+greater_than(circuit=circuit, A=A_register, B=B_register, r=17, AUX=[8,9,10,11,12,13,14,15,16])
 
 ## MEASURE AND PRINT CIRCUIT
-circuit.measure([13,14,15,16], [0,1,2,3])
+circuit.measure([17], [0]) # -> "0001" if A>B; "0000" otherwise.
 print(circuit)
 
 ## COMPILE AND RUN
 transpiled_circuit = transpile(circuit, backend)
-n_shots = 1024
+n_shots = 64
 job_sim = backend.run(transpiled_circuit, shots = n_shots)
 
 result_sim = job_sim.result()
