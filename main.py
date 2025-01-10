@@ -60,6 +60,7 @@ def full_adder(circuit, a, b, r, c_in, c_out, AUX):
     Needs len(AUX)=3.
     """
     reset_bits(bits=AUX)
+    circuit.reset(c_out) # !! c_out must be 0 at the beginning
     
     xor_gate(circuit=circuit, a=a, b=b, output=AUX[0])
     xor_gate(circuit=circuit, a=AUX[0], b=c_in, output=r)
@@ -84,16 +85,18 @@ def add(circuit, A, B, R, AUX):
     Needs len(AUX)=5
     """
     l = len(A)
+    reset_bits(bits=AUX)
 
-    reset_bits(AUX)
-
-    for i in range(l):
-        if i%2 == 0:
-            full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[0], c_out=AUX[1], AUX=AUX[2:])
-        else:
-            full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[1], c_out=AUX[0], AUX=AUX[2:])
-
-    reset_bits(AUX)
+    for i in range(len(A)):
+        full_adder(circuit=circuit, 
+                   a=A[i], 
+                   b=B[i], 
+                   r=R[i], 
+                   c_in=AUX[i % 2], 
+                   c_out=AUX[(i+1) % 2], 
+                   AUX=AUX[2:])
+        
+    reset_bits(bits=AUX)
 
 
 def subtract(circuit, A, B, R, AUX):
@@ -116,10 +119,13 @@ def subtract(circuit, A, B, R, AUX):
     circuit.x(AUX[0]) # Set c_in = 1
 
     for i in range(l):
-        if i%2 == 0:
-            full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[0], c_out=AUX[1], AUX=AUX[2:])
-        else:
-            full_adder(circuit=circuit, a=i, b=i+l, r=R[i], c_in=AUX[1], c_out=AUX[0], AUX=AUX[2:])
+        full_adder(circuit=circuit, 
+                   a=A[i], 
+                   b=B[i], 
+                   r=R[i], 
+                   c_in=AUX[i % 2], 
+                   c_out=AUX[(i+1) % 2], 
+                   AUX=AUX[2:])
 
     for i in range(len(B)): # bring back the bits of B
         circuit.x(B[i])
@@ -127,11 +133,11 @@ def subtract(circuit, A, B, R, AUX):
     reset_bits(AUX)
 
 ## CREATE CIRCUIT
-A = "011"
-B = "001"
+A = "0100"
+B = "0110"
 
-n_qubits = 4 * len(A) + 2
-circuit = QuantumCircuit(n_qubits, 3)
+n_qubits = 3 * len(A) + 5
+circuit = QuantumCircuit(n_qubits, len(A))
 
 set_bits(circuit=circuit, A=range(0, len(A)), X="".join(reversed(A)))
 set_bits(circuit=circuit, A=range(len(B), 2 * len(B)), X="".join(reversed(B)))
@@ -142,11 +148,12 @@ B_register = range(len(A), 2 * len(A))
 
 # add(circuit=circuit, A=A_register, B=B_register, R=[n_qubits-2, n_qubits-1], AUX=range(2*len(A), n_qubits-2)) # equivalent to (with len(A)=2): add(circuit=circuit, A=[0,1], B=[2,3], R=[9,10], AUX=[4, 5, 6, 7, 8])
 #add(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
-subtract(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
-
+#subtract(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
+#add(circuit=circuit, A=[0,1,2,3], B=[4,5,6,7], R=[13,14,15,16], AUX=[8,9,10,11,12])
+subtract(circuit=circuit, A=[0,1,2,3], B=[4,5,6,7], R=[13,14,15,16], AUX=[8,9,10,11,12])
 
 ## MEASURE AND PRINT CIRCUIT
-circuit.measure([11,12,13], [0, 1, 2])
+circuit.measure([13,14,15,16], [0,1,2,3])
 print(circuit)
 
 ## COMPILE AND RUN
