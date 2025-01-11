@@ -64,6 +64,10 @@ def copy(circuit, A, B):
         circuit.cx(A[i], B[i])
     circuit.barrier()
 
+def controlled_copy(circuit, control, A, B):
+    for i in range(len(A)):
+        circuit.ccx(control, A[i], B[i])
+
 
 def full_adder(circuit, a, b, r, c_in, c_out, AUX):
     """
@@ -87,17 +91,24 @@ def full_adder(circuit, a, b, r, c_in, c_out, AUX):
     reset_bits(bits=AUX)
 
 
-def add(circuit, A, B, R, AUX):
-    """
-    Function add(circuit,A,B,R,AUX) implements a circuit that adds number(A) to number(B)
-    and stores the result at register R. Assume that len(A)=len(B)=len(R). Such a circuit is
-    obtained by creating a cascade of full-adder circuits, as specified in Figure 5. The carry bits
-    are part of the auxiliary register AUX. Note that the carry-in bit of the first adder (from right
-    to left) is set to 0.
+def controlled_full_adder(circuit, control, a, b, r, c_in, c_out, AUX):
+    reset_bits(bits=AUX)
+    circuit.reset(c_out) # !! c_out must be 0 at the beginning
+    
+    controlled_xor_gate(circuit=circuit, c=control, a=a, b=b, output=AUX[0])
+    controlled_xor_gate(circuit=circuit, c=control, a=AUX[0], b=c_in, output=r)
 
-    Needs 3 * len(A) + 5 total qubits
-    Needs len(AUX)=5
-    """
+    controlled_and_gate(circuit=circuit, c=control, a=a, b=b, output=AUX[1])
+    controlled_and_gate(circuit=circuit, c=control, a=AUX[0], b=c_in, output=AUX[2])
+
+    controlled_or_gate(circuit=circuit, c=control, a=AUX[1], b=AUX[2], output=c_out)
+
+    reset_bits(bits=AUX)
+
+
+def add(circuit, A, B, R, AUX):
+    # Needs len(AUX)=5
+
     l = len(A)
     reset_bits(bits=AUX)
 
@@ -111,6 +122,22 @@ def add(circuit, A, B, R, AUX):
                    AUX=AUX[2:])
         
     reset_bits(bits=AUX)
+
+def controlled_add(circuit, control, A, B, R, AUX):
+    # Needs len(AUX)=5
+
+    l = len(A)
+    reset_bits(bits=AUX)
+
+    for i in range(len(A)):
+        controlled_full_adder(circuit=circuit, 
+                   control=control,
+                   a=A[i], 
+                   b=B[i], 
+                   r=R[i], 
+                   c_in=AUX[i % 2], 
+                   c_out=AUX[(i+1) % 2], 
+                   AUX=AUX[2:])
 
 
 def subtract(circuit, A, B, R, AUX):
@@ -145,6 +172,35 @@ def subtract(circuit, A, B, R, AUX):
         circuit.x(B[i])
 
 
+def controlled_subtract(circuit, control, A, B, R, AUX):
+    # Needs len(AUX)=5
+    l = len(A)
+    
+    for i in range(len(B)): # negate all bits of B
+        circuit.cx(control, B[i])
+
+    reset_bits(AUX)
+    circuit.cx(control, AUX[0]) # Set c_in = 1
+
+    for i in range(l):
+        controlled_full_adder(circuit=circuit, 
+                   control=control,
+                   a=A[i], 
+                   b=B[i], 
+                   r=R[i], 
+                   c_in=AUX[i % 2], 
+                   c_out=AUX[(i+1) % 2], 
+                   AUX=AUX[2:])
+
+    for i in range(len(B)): # bring back the bits of B
+        circuit.cx(control, B[i])
+
+    # we have to copy A to R if control is 0
+    circuit.x(control)
+    controlled_copy(circuit=circuit, control=control, A=A, B=R)
+    circuit.x(control)
+
+
 def greater_than(circuit, A, B, r, AUX):
     # IDEA:
     # 1) compute B-A
@@ -164,34 +220,51 @@ def greater_than(circuit, A, B, r, AUX):
 
     reset_bits(AUX)
 
+
+def add_mod(circuit, N, A, B, R, AUX):
+    # Needs len(AUX) = 2*len(A)+6
+    reset_bits(bits=AUX)
+
+    result_add = AUX[:len(A)]
+    result_gt = AUX[len(A):len(A)+1]
+    add_sub_aux = AUX[len(A)+1:len(A)+1+5]
+    gt_aux = AUX[len(A)+1:len(A)+1+5+len(A)]
+
+    add(circuit=circuit, A=A, B=B, R=result_add, AUX=add_sub_aux) # add both numbers
+    
+    greater_than(circuit=circuit, A=result_add, B=N, r=result_gt, AUX=gt_aux) # test whether the result is greater than N
+    
+    controlled_subtract(circuit=circuit, control=result_gt, A=result_add, B=N, R=R, AUX=add_sub_aux) # if yes, then subtract N from the result
+    
+    reset_bits(bits=AUX)
+
+
 ## CREATE CIRCUIT
-A = "1110"
-B = "1001"
+a = "001" # 1
+b = "010" # 2
+n = "011" # 5
 
-n_qubits = 3 * len(A) + 5 + 1 # 3*len(A) for storing A,B and the result; 5 as AUX for subtract/add; 1 for the result of greater_than
-circuit = QuantumCircuit(n_qubits, len(A))
-
-A_register = range(0, len(A))
-B_register = range(len(A), 2 * len(A))
-
-set_bits(circuit=circuit, A=A_register, X="".join(reversed(A)))
-set_bits(circuit=circuit, A=B_register, X="".join(reversed(B)))
-circuit.barrier()
+A_register = range(0, len(a))
+B_register = range(len(a), 2 * len(a))
+N_register = range(2*len(a), 3*len(a))
+R_register = range(3*len(a), 4*len(a))
+AUX_add_mod = range(4*len(a), 4*len(a)+(2*len(a)+5+1))
 
 
-#add(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
-#subtract(circuit=circuit, A=[0,1,2], B=[3,4,5], R=[11,12,13], AUX=[6,7,8,9,10])
-#add(circuit=circuit, A=[0,1,2,3], B=[4,5,6,7], R=[13,14,15,16], AUX=[8,9,10,11,12])
-#subtract(circuit=circuit, A=[0,1,2,3], B=[4,5,6,7], R=[13,14,15,16], AUX=[8,9,10,11,12])
-greater_than(circuit=circuit, A=A_register, B=B_register, r=17, AUX=[8,9,10,11,12,13,14,15,16])
+circuit = QuantumCircuit(6*len(a)+6, len(a))
+set_bits(circuit=circuit, A=A_register, X="".join(reversed(a)))
+set_bits(circuit=circuit, A=B_register, X="".join(reversed(b)))
+set_bits(circuit=circuit, A=N_register, X="".join(reversed(n)))
 
-## MEASURE AND PRINT CIRCUIT
-circuit.measure([17], [0]) # -> "0001" if A>B; "0000" otherwise.
+add_mod(circuit=circuit, N=N_register, A=A_register, B=B_register, R=R_register, AUX=AUX_add_mod)
+
+circuit.measure(R_register, range(len(a)))
 print(circuit)
 
 ## COMPILE AND RUN
+
 transpiled_circuit = transpile(circuit, backend)
-n_shots = 64
+n_shots = 1
 job_sim = backend.run(transpiled_circuit, shots = n_shots)
 
 result_sim = job_sim.result()
