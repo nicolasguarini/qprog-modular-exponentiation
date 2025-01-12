@@ -169,3 +169,18 @@ def add_mod(circuit, N, A, B, R, AUX):
     controlled_subtract(circuit=circuit, control=result_gt, A=result_add, B=N, R=R, AUX=add_sub_aux) # if yes, then subtract N from the result
     
     reset_bits(circuit=circuit, bits=AUX)
+
+def times_two_mod(circuit, N, A, R, AUX):
+    # Needs len(AUX) = 3*len(A)+6
+    reset_bits(circuit, AUX)
+
+    temp_register = AUX[:len(A)]
+    add_mod_aux = AUX[len(A):]
+
+    # Copy A to the temporary register
+    copy(circuit, A, temp_register)
+
+    # Compute A + A mod N
+    add_mod(circuit=circuit, N=N, A=A, B=temp_register, R=R, AUX=add_mod_aux)
+
+    reset_bits(circuit, AUX)
