@@ -184,3 +184,21 @@ def times_two_mod(circuit, N, A, R, AUX):
     add_mod(circuit=circuit, N=N, A=A, B=temp_register, R=R, AUX=add_mod_aux)
 
     reset_bits(circuit, AUX)
+
+def times_two_power_mod(circuit,N,A,k,R,AUX):
+    # Needs len(AUX) = 4*len(A)+6
+    reset_bits(circuit=circuit, bits=AUX)
+
+    temp_register = AUX[:len(A)]
+    times_two_mod_aux = AUX[len(A):]
+    copy(circuit, A, temp_register)
+
+    for i in range(k):
+        times_two_mod(circuit=circuit, N=N, A=temp_register, R=R, AUX=times_two_mod_aux)
+        reset_bits(circuit=circuit, bits=temp_register) # the copy() function expects B to be |0>
+        copy(circuit=circuit, A=R, B=temp_register)
+        reset_bits(circuit=circuit, bits=R) # R should never contain intermediate results
+
+    copy(circuit=circuit, A=temp_register, B=R)
+    reset_bits(circuit=circuit, bits=AUX)
+
