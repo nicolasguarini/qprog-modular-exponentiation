@@ -140,6 +140,7 @@ def greater_than(circuit, A, B, r, AUX):
     #   -> the negation of the carry out is A > B
     #
     #! -> the subtraction function should NOT reset AUX after the computation
+    # Needs len(AUX) = 5+len(A)
 
     reset_bits(circuit, AUX)
     result_register = AUX[:len(A)]
@@ -149,6 +150,25 @@ def greater_than(circuit, A, B, r, AUX):
 
     copy(circuit, [aux_subtract[len(A)%2]], [r])
     circuit.x(r)
+
+    reset_bits(circuit, AUX)
+
+def greater_than_or_equal(circuit, A, B, r, AUX):
+    # IDEA:
+    # 1) Compute A - B
+    # 2) If the carry-out of the subtraction is 1, then A >= B
+    #
+    #! -> The subtraction function should NOT reset AUX after the computation
+    # Needs len(AUX) = 5+len(A)
+
+    reset_bits(circuit, AUX)
+    result_register = AUX[:len(A)]
+    aux_subtract = AUX[len(A):]
+
+    subtract(circuit=circuit, A=A, B=B, R=result_register, AUX=aux_subtract)
+
+    # Copy the carry-out directly into r (without negation)
+    copy(circuit, [aux_subtract[len(A) % 2]], [r])
 
     reset_bits(circuit, AUX)
 
@@ -164,7 +184,7 @@ def add_mod(circuit, N, A, B, R, AUX):
 
     add(circuit=circuit, A=A, B=B, R=result_add, AUX=add_sub_aux) # add both numbers
     
-    greater_than(circuit=circuit, A=result_add, B=N, r=result_gt, AUX=gt_aux) # test whether the result is greater than N
+    greater_than_or_equal(circuit=circuit, A=result_add, B=N, r=result_gt, AUX=gt_aux) # test whether the result is greater than N
     
     controlled_subtract(circuit=circuit, control=result_gt, A=result_add, B=N, R=R, AUX=add_sub_aux) # if yes, then subtract N from the result
     
