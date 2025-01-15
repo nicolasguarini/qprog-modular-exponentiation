@@ -3,10 +3,6 @@ from utilities import *
 
 def full_adder(circuit, a, b, r, c_in, c_out, AUX):
     """
-    Function full_adder(circuit,a,b,r,c_in,c_out,AUX) implements a full adder (Figure
-    3). The registers a and b store the bits to be added, c_in stores the carry-in bit, c_out
-    stores the carry-out bit, r stores the result of the sum, and AUX is the auxiliary register.
-
     Needs len(AUX)=3.
     """
     reset_bits(circuit=circuit, bits=AUX)
@@ -55,6 +51,7 @@ def add(circuit, A, B, R, AUX):
         
     reset_bits(circuit=circuit, bits=AUX)
 
+
 def controlled_add(circuit, control, A, B, R, AUX):
     # Needs len(AUX)=5
 
@@ -70,16 +67,17 @@ def controlled_add(circuit, control, A, B, R, AUX):
                    c_in=AUX[i % 2], 
                    c_out=AUX[(i+1) % 2], 
                    AUX=AUX[2:])
+        
+     # we have to copy A to R if control is 0
+    circuit.x(control)
+    controlled_copy(circuit=circuit, control=control, A=A, B=R)
+    circuit.x(control)
+
+    reset_bits(circuit=circuit, bits=AUX)
 
 
 def subtract(circuit, A, B, R, AUX):
     """
-    Function subtract(circuit,A,B,R,AUX) implements a circuit that subtracts Number(B)
-    from Number(A) and stores the result in register R. Assume that len(A) = len(B) = len(R).
-    Such a circuit can be obtained by negating each bit stored in B, and by applying the adder
-    circuit with the first carry-in bit set to 1 instead of 0 (Figure 9).
-
-    Needs (3 * len(A)) + 5 total qubits
     Needs len(AUX)=5
     """
 
@@ -153,6 +151,7 @@ def greater_than(circuit, A, B, r, AUX):
 
     reset_bits(circuit, AUX)
 
+
 def greater_than_or_equal(circuit, A, B, r, AUX):
     # IDEA:
     # 1) Compute A - B
@@ -190,6 +189,7 @@ def add_mod(circuit, N, A, B, R, AUX):
     
     reset_bits(circuit=circuit, bits=AUX)
 
+
 def times_two_mod(circuit, N, A, R, AUX):
     # Needs len(AUX) = 3*len(A)+6
     reset_bits(circuit, AUX)
@@ -205,6 +205,7 @@ def times_two_mod(circuit, N, A, R, AUX):
 
     reset_bits(circuit, AUX)
 
+
 def times_two_power_mod(circuit,N,A,k,R,AUX):
     # Needs len(AUX) = 4*len(A)+6
     reset_bits(circuit=circuit, bits=AUX)
@@ -219,6 +220,33 @@ def times_two_power_mod(circuit,N,A,k,R,AUX):
         copy(circuit=circuit, A=R, B=temp_register)
         reset_bits(circuit=circuit, bits=R) # R should never contain intermediate results
 
-    copy(circuit=circuit, A=temp_register, B=R)
+    if k > 0:
+        copy(circuit=circuit, A=temp_register, B=R)
+    else:
+        # if k==0, the result will be A mod N
+        reset_bits(circuit=circuit, bits=AUX)
+        greater_than_or_equal(circuit=circuit, A=A, B=N, r=AUX[0], AUX=AUX[1:])
+        controlled_subtract(circuit=circuit, control=AUX[0], A=A, B=N, R=R, AUX=AUX[1:])
+
     reset_bits(circuit=circuit, bits=AUX)
 
+
+def multiply_mod(circuit, N, A, B, R, AUX):
+    # Needs len(AUX) = 6 * len(A) + 6
+    reset_bits(circuit=circuit, bits=AUX)
+
+    temp_register = AUX[:len(A)]
+    sum_register = AUX[len(A):2*len(A)]
+    times_two_power_mod_aux = AUX[2*len(A):]
+
+    for k in range(len(B)):
+        reset_bits(circuit=circuit, bits=temp_register)
+        reset_bits(circuit=circuit, bits=R) # controlled_add expects R to be |0>
+
+        times_two_power_mod(circuit=circuit, N=N, A=A, k=k, R=temp_register, AUX=times_two_power_mod_aux) # compute A*2^k mod N
+
+        controlled_add(circuit=circuit, control=B[k], A=sum_register, B=temp_register, R=R, AUX=times_two_power_mod_aux) # sum the result if B[k] == 1
+
+        controlled_copy(circuit, control=B[k], A=R, B=sum_register) # copy sum for next iteration
+        
+    reset_bits(circuit=circuit, bits=AUX)
