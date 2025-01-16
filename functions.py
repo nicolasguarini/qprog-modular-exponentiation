@@ -163,6 +163,8 @@ def greater_than_or_equal(circuit, A, B, r, AUX):
     reset_bits(circuit, AUX)
     result_register = AUX[:len(A)]
     aux_subtract = AUX[len(A):]
+    
+    print("aux_subtract in gt than ", len(aux_subtract))
 
     subtract(circuit=circuit, A=A, B=B, R=result_register, AUX=aux_subtract)
 
@@ -179,7 +181,7 @@ def add_mod(circuit, N, A, B, R, AUX):
     result_add = AUX[:len(A)]
     result_gt = AUX[len(A):len(A)+1]
     add_sub_aux = AUX[len(A)+1:len(A)+1+5]
-    gt_aux = AUX[len(A)+1:len(A)+1+5+len(A)]
+    gt_aux = AUX[len(A)+6:]
 
     add(circuit=circuit, A=A, B=B, R=result_add, AUX=add_sub_aux) # add both numbers
     
@@ -249,4 +251,22 @@ def multiply_mod(circuit, N, A, B, R, AUX):
 
         controlled_copy(circuit, control=B[k], A=R, B=sum_register) # copy sum for next iteration
         
+    reset_bits(circuit=circuit, bits=AUX)
+
+def multiply_mod_fixed(circuit, N, X, B, AUX):
+    # Needs len(AUX) = 6 * len(B) + 6
+    reset_bits(circuit=circuit, bits=AUX)
+
+    sum_register = AUX[:len(B)]
+    multiply_mod_aux = AUX[len(B):]
+
+    # Initialize the sum_register to 0
+    reset_bits(circuit=circuit, bits=sum_register)
+
+    # Perform the multiplication
+    multiply_mod(circuit=circuit, N=N, A=X, B=B, R=sum_register, AUX=multiply_mod_aux)
+
+    # Copy the final result back to B
+    copy(circuit, sum_register, B)
+
     reset_bits(circuit=circuit, bits=AUX)
