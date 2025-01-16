@@ -33,3 +33,9 @@ def copy(circuit, A, B):
 def controlled_copy(circuit, control, A, B):
     for i in range(len(A)):
         circuit.ccx(control, A[i], B[i])
+
+
+def invert_string(X):
+    # example: X = "01011"
+    # returns "10100"
+    return "".join([str(int(x)^1) for x in X])

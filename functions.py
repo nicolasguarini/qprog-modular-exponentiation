@@ -163,8 +163,6 @@ def greater_than_or_equal(circuit, A, B, r, AUX):
     reset_bits(circuit, AUX)
     result_register = AUX[:len(A)]
     aux_subtract = AUX[len(A):]
-    
-    print("aux_subtract in gt than ", len(aux_subtract))
 
     subtract(circuit=circuit, A=A, B=B, R=result_register, AUX=aux_subtract)
 
@@ -181,7 +179,7 @@ def add_mod(circuit, N, A, B, R, AUX):
     result_add = AUX[:len(A)]
     result_gt = AUX[len(A):len(A)+1]
     add_sub_aux = AUX[len(A)+1:len(A)+1+5]
-    gt_aux = AUX[len(A)+6:]
+    gt_aux = AUX[len(A)+1:len(A)+1+5+len(A)]
 
     add(circuit=circuit, A=A, B=B, R=result_add, AUX=add_sub_aux) # add both numbers
     
@@ -254,19 +252,24 @@ def multiply_mod(circuit, N, A, B, R, AUX):
     reset_bits(circuit=circuit, bits=AUX)
 
 def multiply_mod_fixed(circuit, N, X, B, AUX):
-    # Needs len(AUX) = 6 * len(B) + 6
+    # Needs len(AUX) = 8 len (X) + 6
     reset_bits(circuit=circuit, bits=AUX)
+    
+    first_register = AUX[:len(X)]
+    second_register = B
+    third_register = AUX[len(X):2*len(X)]
+    fourth_register = AUX[2*len(X):(2*len(X)) + (6*len(X)+6)]
 
-    sum_register = AUX[:len(B)]
-    multiply_mod_aux = AUX[len(B):]
+    set_bits(circuit=circuit, A=first_register, X="".join(reversed(X))) # -> |X>
 
-    # Initialize the sum_register to 0
-    reset_bits(circuit=circuit, bits=sum_register)
+    multiply_mod(circuit=circuit, N=N, A=first_register, B=second_register, R=third_register, AUX=fourth_register)
+    
+    set_bits(circuit=circuit, A=first_register, X="".join(reversed(X))) # -> |0>
 
-    # Perform the multiplication
-    multiply_mod(circuit=circuit, N=N, A=X, B=B, R=sum_register, AUX=multiply_mod_aux)
+    set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X))))  # -> |X^-1>
 
-    # Copy the final result back to B
-    copy(circuit, sum_register, B)
+    multiply_mod(circuit=circuit, N=N, A=first_register, B=third_register, R=second_register, AUX=fourth_register)
+
+    set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X)))) # -> |0>
 
     reset_bits(circuit=circuit, bits=AUX)
