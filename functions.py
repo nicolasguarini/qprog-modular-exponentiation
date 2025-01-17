@@ -263,12 +263,16 @@ def multiply_mod_fixed(circuit, N, X, B, AUX):
     set_bits(circuit=circuit, A=first_register, X="".join(reversed(X))) # -> |X>
 
     multiply_mod(circuit=circuit, N=N, A=first_register, B=second_register, R=third_register, AUX=fourth_register)
+
+    reset_bits(circuit=circuit, bits=second_register)
+    copy(circuit=circuit, A=third_register, B=second_register) # swap second and third register
+    reset_bits(circuit=circuit, bits=third_register) # R should be 0 before the next multiplication
     
     set_bits(circuit=circuit, A=first_register, X="".join(reversed(X))) # -> |0>
 
     set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X))))  # -> |X^-1>
 
-    multiply_mod(circuit=circuit, N=N, A=first_register, B=third_register, R=second_register, AUX=fourth_register)
+    multiply_mod(circuit=circuit, N=N, A=first_register, B=second_register, R=third_register, AUX=fourth_register) # what's the point of this?? we already have the result in B
 
     set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X)))) # -> |0>
 
