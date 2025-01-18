@@ -266,14 +266,26 @@ def multiply_mod_fixed(circuit, N, X, B, AUX):
 
     reset_bits(circuit=circuit, bits=second_register)
     copy(circuit=circuit, A=third_register, B=second_register) # swap second and third register
-    reset_bits(circuit=circuit, bits=third_register) # R should be 0 before the next multiplication
+    # reset_bits(circuit=circuit, bits=third_register) # R should be 0 before the next multiplication
     
-    set_bits(circuit=circuit, A=first_register, X="".join(reversed(X))) # -> |0>
+    # set_bits(circuit=circuit, A=first_register, X="".join(reversed(X))) # -> |0>
 
-    set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X))))  # -> |X^-1>
+    # set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X))))  # -> |X^-1>
 
-    multiply_mod(circuit=circuit, N=N, A=first_register, B=second_register, R=third_register, AUX=fourth_register) # what's the point of this?? we already have the result in B
+    # multiply_mod(circuit=circuit, N=N, A=first_register, B=second_register, R=third_register, AUX=fourth_register) # what's the point of this?? we already have the result in B
 
-    set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X)))) # -> |0>
+    # set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X)))) # -> |0>
 
     reset_bits(circuit=circuit, bits=AUX)
+
+def multiply_mod_fixed_power_2_k(circuit, N, X, B, AUX, k):
+    # Pre-compute W = X^{2^k} mod N using Python
+    W = int(X,2)
+    for _ in range(k):
+        W = (W * W) % int(N,2)
+    # Convert W to binary string
+    W_binary = format(W, '0' + str(len(B)) + 'b')
+    # Call multiply_mod_fixed with W
+    N_register = range(len(N), 2 * len(N))
+    set_bits(circuit=circuit, A=N_register, X="".join(reversed(N)))
+    multiply_mod_fixed(circuit=circuit, N=N_register, X=W_binary, B=B, AUX=AUX)
