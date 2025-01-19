@@ -250,6 +250,7 @@ def multiply_mod(circuit, N, A, B, R, AUX):
         
     reset_bits(circuit=circuit, bits=AUX)
 
+
 def multiply_mod_fixed(circuit, N, X, B, AUX):
     # Needs len(AUX) = 8 len (X) + 6
     reset_bits(circuit=circuit, bits=AUX)
@@ -279,18 +280,22 @@ def multiply_mod_fixed(circuit, N, X, B, AUX):
 
 def multiply_mod_fixed_power_2_k(circuit, N, X, B, AUX, k):
     # Needs len(AUX) = 9 len (X) + 6
-
     
     W = pow(int(X, 2), 2**k, int(N, 2))  # built-in pow(base, exp, mod)
     W_binary = format(W, '0' + str(len(B)) + 'b')  # convert W to binary string
 
-    print(f"doing B * {int(X,2)}^{2**k} mod {int(N, 2)}")
-
-    # Call multiply_mod_fixed with W
     N_register = AUX[:len(N)]
     mul_mod_fixed_aux = AUX[len(N):]
 
     set_bits(circuit=circuit, A=N_register, X="".join(reversed(N)))
 
-    multiply_mod_fixed(circuit=circuit, N=N_register, X=W_binary, B=B, AUX=mul_mod_fixed_aux)
+    multiply_mod_fixed(circuit=circuit, N=N_register, X=W_binary, B=B, AUX=mul_mod_fixed_aux) # B * W mod N
     reset_bits(circuit=circuit, bits=AUX)
+
+def multiply_mod_fixed_power_Y(circuit,N,X,B,AUX,Y):
+    # Needs len(AUX) = 9 len (X) + 6
+    
+    for i in range(len("".join(reversed(Y)))):
+        if Y[i] == "1":
+            multiply_mod_fixed_power_2_k(circuit=circuit, N=N, X=X, B=B, AUX=AUX, k=i)
+
