@@ -387,13 +387,13 @@ class Test(unittest.TestCase):
     def test_multiply_mod_fixed_power_2_k(self):
         n_shots = 1
         
-        tests = {
+        tests = [
             [('00', '00', '00', 0), {'00': n_shots}],
             [('01', '01', '01', 0), {'00': n_shots}],
             [('01', '01', '10', 1), {'01': n_shots}],
             [('01', '01', '11', 1), {'01': n_shots}],
             [('01', '10', '10', 0), {'00': n_shots}],
-        }
+        ]
 
         for (b, x, n, k), expected_counts in tests:
             circuit = QuantumCircuit(26, 2)
