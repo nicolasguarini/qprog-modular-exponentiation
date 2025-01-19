@@ -399,7 +399,7 @@ class Test(unittest.TestCase):
             circuit = QuantumCircuit(26, 2)
             set_bits(circuit, A=[0,1], X="".join(reversed(b)))
 
-            multiply_mod_fixed_power_2_k(circuit=circuit, N=n, X=x, B=[0,1], k=k, AUX=range(2, 2+(9*len(b)+6)), k=0)
+            multiply_mod_fixed_power_2_k(circuit=circuit, N=n, X=x, B=[0,1], k=k, AUX=range(2, 2+(9*len(b)+6)))
             circuit.measure([0,1], [0,1])
 
             transpiled_circuit = transpile(circuit, backend)
