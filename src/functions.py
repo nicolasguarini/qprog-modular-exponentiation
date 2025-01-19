@@ -2,9 +2,8 @@ from gates import *
 from utilities import *
 
 def full_adder(circuit, a, b, r, c_in, c_out, AUX):
-    """
-    Needs len(AUX)=3.
-    """
+    # Needs len(AUX)=3.
+
     reset_bits(circuit=circuit, bits=AUX)
     circuit.reset(c_out) # !! c_out must be 0 at the beginning
     
@@ -20,6 +19,8 @@ def full_adder(circuit, a, b, r, c_in, c_out, AUX):
 
 
 def controlled_full_adder(circuit, control, a, b, r, c_in, c_out, AUX):
+    # Needs len(AUX)=3.
+
     reset_bits(circuit=circuit, bits=AUX)
     circuit.reset(c_out) # !! c_out must be 0 at the beginning
     
@@ -37,7 +38,6 @@ def controlled_full_adder(circuit, control, a, b, r, c_in, c_out, AUX):
 def add(circuit, A, B, R, AUX):
     # Needs len(AUX)=5
 
-    l = len(A)
     reset_bits(circuit=circuit, bits=AUX)
 
     for i in range(len(A)):
@@ -55,7 +55,6 @@ def add(circuit, A, B, R, AUX):
 def controlled_add(circuit, control, A, B, R, AUX):
     # Needs len(AUX)=5
 
-    l = len(A)
     reset_bits(circuit=circuit, bits=AUX)
 
     for i in range(len(A)):
@@ -77,9 +76,7 @@ def controlled_add(circuit, control, A, B, R, AUX):
 
 
 def subtract(circuit, A, B, R, AUX):
-    """
-    Needs len(AUX)=5
-    """
+    # Needs len(AUX)=5
 
     l = len(A)
 
@@ -174,6 +171,7 @@ def greater_than_or_equal(circuit, A, B, r, AUX):
 
 def add_mod(circuit, N, A, B, R, AUX):
     # Needs len(AUX) = 2*len(A)+6
+
     reset_bits(circuit=circuit, bits=AUX)
 
     result_add = AUX[:len(A)]
@@ -192,22 +190,22 @@ def add_mod(circuit, N, A, B, R, AUX):
 
 def times_two_mod(circuit, N, A, R, AUX):
     # Needs len(AUX) = 3*len(A)+6
+    
     reset_bits(circuit, AUX)
 
     temp_register = AUX[:len(A)]
     add_mod_aux = AUX[len(A):]
 
-    # Copy A to the temporary register
-    copy(circuit, A, temp_register)
+    copy(circuit, A, temp_register) # copy A to the temporary register
 
-    # Compute A + A mod N
-    add_mod(circuit=circuit, N=N, A=A, B=temp_register, R=R, AUX=add_mod_aux)
+    add_mod(circuit=circuit, N=N, A=A, B=temp_register, R=R, AUX=add_mod_aux) # compute A + A mod N
 
     reset_bits(circuit, AUX)
 
 
 def times_two_power_mod(circuit,N,A,k,R,AUX):
     # Needs len(AUX) = 4*len(A)+6
+
     reset_bits(circuit=circuit, bits=AUX)
 
     temp_register = AUX[:len(A)]
@@ -233,6 +231,7 @@ def times_two_power_mod(circuit,N,A,k,R,AUX):
 
 def multiply_mod(circuit, N, A, B, R, AUX):
     # Needs len(AUX) = 6 * len(A) + 6
+
     reset_bits(circuit=circuit, bits=AUX)
 
     temp_register = AUX[:len(A)]
@@ -253,6 +252,7 @@ def multiply_mod(circuit, N, A, B, R, AUX):
 
 def multiply_mod_fixed(circuit, N, X, B, AUX):
     # Needs len(AUX) = 8 len (X) + 6
+    
     reset_bits(circuit=circuit, bits=AUX)
     
     first_register = AUX[:len(X)]
@@ -266,22 +266,30 @@ def multiply_mod_fixed(circuit, N, X, B, AUX):
 
     reset_bits(circuit=circuit, bits=second_register)
     copy(circuit=circuit, A=third_register, B=second_register) # swap second and third register
+
+    # we can avoid the rest of the described computation since we already have the result in B
+    
     # reset_bits(circuit=circuit, bits=third_register) # R should be 0 before the next multiplication
     
     # set_bits(circuit=circuit, A=first_register, X="".join(reversed(X))) # -> |0>
 
     # set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X))))  # -> |X^-1>
 
-    # multiply_mod(circuit=circuit, N=N, A=first_register, B=second_register, R=third_register, AUX=fourth_register) # what's the point of this?? we already have the result in B
+    # multiply_mod(circuit=circuit, N=N, A=first_register, B=second_register, R=third_register, AUX=fourth_register)
 
     # set_bits(circuit=circuit, A=first_register, X="".join(reversed(invert_string(X)))) # -> |0>
 
     reset_bits(circuit=circuit, bits=AUX)
 
+
 def multiply_mod_fixed_power_2_k(circuit, N, X, B, AUX, k):
     # Needs len(AUX) = 9 len (X) + 6
     
-    W = pow(int(X, 2), 2**k, int(N, 2))  # built-in pow(base, exp, mod)
+    if int(N, 2) == 0:
+        W = 0
+    else:
+        W = pow(int(X, 2), 2**k, int(N, 2))  # built-in pow(base, exp, mod)
+
     W_binary = format(W, '0' + str(len(B)) + 'b')  # convert W to binary string
 
     N_register = AUX[:len(N)]
@@ -291,6 +299,7 @@ def multiply_mod_fixed_power_2_k(circuit, N, X, B, AUX, k):
 
     multiply_mod_fixed(circuit=circuit, N=N_register, X=W_binary, B=B, AUX=mul_mod_fixed_aux) # B * W mod N
     reset_bits(circuit=circuit, bits=AUX)
+
 
 def multiply_mod_fixed_power_Y(circuit,N,X,B,AUX,Y):
     # Needs len(AUX) = 9 len (X) + 6
