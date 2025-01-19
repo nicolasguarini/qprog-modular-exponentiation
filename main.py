@@ -7,10 +7,10 @@ backend = AerSimulator()
 
 ## CREATE CIRCUIT
 #a = "11"
-b = "10"
-n = "11" # (3*1) mod 2 = 1
+b = "01"
+n = "10" # (3*1) mod 2 = 1
 x = "11"
-k = 1
+k = 0
 
 #A_register = range(0, len(a))
 B_register = range(len(b))
@@ -18,9 +18,11 @@ B_register = range(len(b))
 # AUX_times_two_mod = range(3*len(b), 3*len(b)+(3*len(b)+5+1))
 # AUX_times_two_power_mod = range(3*len(b), 3*len(b)+(4*len(b)+5+1))
 # AUX_multiply_mod = range(4*len(b), 4*len(b)+(6*len(b)+5+1))
-AUX_multiply_mod_fixed = range(2 * len(b), 2 * len(b)+(8 * len(b) + 6))
+# AUX_multiply_mod_fixed = range(2 * len(b), 2 * len(b)+(8 * len(b) + 6))
+AUX_multiply_xy_mod = range(len(b), len(b)+(9 * len(b) + 6))
 
 #n_qubits_multiply_mod = 10 * len(b) + 6
+# n_qubits_multiply_mod_fixed = (8*len(b)+6) + (2*len(b))
 n_qubits_multiply_mod_fixed = (8*len(b)+6) + (2*len(b))
 
 circuit = QuantumCircuit(n_qubits_multiply_mod_fixed, len(b))
@@ -31,7 +33,7 @@ set_bits(circuit=circuit, A=B_register, X="".join(reversed(b)))
 #times_two_mod(circuit=circuit, N=N_register, A=A_register, R=R_register, AUX=AUX_times_two_mod)
 #times_two_power_mod(circuit=circuit, N=N_register, A=A_register, k=k, R=R_register, AUX=AUX_times_two_power_mod)
 #multiply_mod_fixed(circuit=circuit, N=N_register, X=x, B=B_register, AUX=AUX_multiply_mod_fixed)
-multiply_mod_fixed_power_2_k(circuit=circuit, N=n, X=x, B=B_register, AUX=AUX_multiply_mod_fixed, k=k)
+multiply_mod_fixed_power_2_k(circuit=circuit, N=n, X=x, B=B_register, AUX=AUX_multiply_xy_mod, k=k)
 
 circuit.measure(B_register, range(len(b)))
 print(f"Running circuit({n_qubits_multiply_mod_fixed}, {len(b)})")

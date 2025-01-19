@@ -244,9 +244,8 @@ def multiply_mod(circuit, N, A, B, R, AUX):
         reset_bits(circuit=circuit, bits=R) # controlled_add expects R to be |0>
 
         times_two_power_mod(circuit=circuit, N=N, A=A, k=k, R=temp_register, AUX=times_two_power_mod_aux) # compute A*2^k mod N
-
         controlled_add(circuit=circuit, control=B[k], A=sum_register, B=temp_register, R=R, AUX=times_two_power_mod_aux) # sum the result if B[k] == 1
-
+        reset_bits(circuit=circuit, bits=sum_register) # sum_register should be |0> before copying into it
         controlled_copy(circuit, control=B[k], A=R, B=sum_register) # copy sum for next iteration
         
     reset_bits(circuit=circuit, bits=AUX)
@@ -279,13 +278,19 @@ def multiply_mod_fixed(circuit, N, X, B, AUX):
     reset_bits(circuit=circuit, bits=AUX)
 
 def multiply_mod_fixed_power_2_k(circuit, N, X, B, AUX, k):
-    # Pre-compute W = X^{2^k} mod N using Python
-    W = int(X,2)
-    for _ in range(k):
-        W = (W * W) % int(N,2)
-    # Convert W to binary string
-    W_binary = format(W, '0' + str(len(B)) + 'b')
+    # Needs len(AUX) = 9 len (X) + 6
+
+    
+    W = pow(int(X, 2), 2**k, int(N, 2))  # built-in pow(base, exp, mod)
+    W_binary = format(W, '0' + str(len(B)) + 'b')  # convert W to binary string
+
+    print(f"doing B * {int(X,2)}^{2**k} mod {int(N, 2)}")
+
     # Call multiply_mod_fixed with W
-    N_register = range(len(N), 2 * len(N))
+    N_register = AUX[:len(N)]
+    mul_mod_fixed_aux = AUX[len(N):]
+
     set_bits(circuit=circuit, A=N_register, X="".join(reversed(N)))
-    multiply_mod_fixed(circuit=circuit, N=N_register, X=W_binary, B=B, AUX=AUX)
+
+    multiply_mod_fixed(circuit=circuit, N=N_register, X=W_binary, B=B, AUX=mul_mod_fixed_aux)
+    reset_bits(circuit=circuit, bits=AUX)
